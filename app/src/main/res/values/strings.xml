@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">To Do List</string>
+    <string name="add_item">Add Item</string>
+    <string name="hint_item_title">Title…</string>
+    <string name="button_save">Save</string>
+    <string name="fields_empty">Fields are empty, cannot save</string>
+    <string name="action_cancelled">Action cancelled</string>
+    <string name="confirm_delete">Are you sure you want to delete this item?</string>
+    <string name="dialog_yes">Yes</string>
+    <string name="dialog_no">No</string>
+    <string name="channel_name">ToDoList BroadCast Channel</string>
+    <string name="channel_description">Channel for ToDoItem due dates</string>
+    <string name="notification_title">Item due soon</string>
+    <string name="notification_description">"%1$s" is due at %2$s</string>
+    <string name="completed_text">Completed?</string>
+    <string name="date_input">Date</string>
+    <string name="time_input">Time</string>
+    <string name="description_hint">Description…</string>
+</resources>
