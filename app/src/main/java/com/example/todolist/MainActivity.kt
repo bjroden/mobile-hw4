@@ -4,12 +4,15 @@ import android.app.Activity
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.activity.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 class MainActivity : AppCompatActivity(), ToDoListAdapter.ToDoItemButtonListener {
     // Handles notifications for item due dates
@@ -27,6 +30,11 @@ class MainActivity : AppCompatActivity(), ToDoListAdapter.ToDoItemButtonListener
 
         alarmHandler = AlarmHandler()
         alarmHandler.initNotificationChannel(this)
+
+        val db = Firebase.firestore.collection("items-test")
+        db.get().addOnSuccessListener {
+            Log.d("MainActivity", it.documents.toString())
+        }
 
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
         val adapter = ToDoListAdapter(this)
