@@ -9,7 +9,7 @@ import kotlinx.parcelize.Parcelize
 @Entity(tableName = "todoitems_table")
 @Parcelize
 data class ToDoItem (
-    @PrimaryKey(autoGenerate = true) val id: Int?,
+    @PrimaryKey(autoGenerate = true) val id: Long?,
     @ColumnInfo(name = "title") val title: String,
     @ColumnInfo(name = "content" ) val content: String,
     @ColumnInfo(name = "due_date") val dueDate: Long,

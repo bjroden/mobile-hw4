@@ -12,7 +12,7 @@ interface ToDoItemDao {
     suspend fun updateItem(todoItem: ToDoItem)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(todoItem: ToDoItem)
+    suspend fun insert(todoItem: ToDoItem): Long
 
     @Delete
     suspend fun deleteItem(item: ToDoItem)

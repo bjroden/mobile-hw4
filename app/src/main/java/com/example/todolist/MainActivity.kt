@@ -23,8 +23,6 @@ class MainActivity : AppCompatActivity(), ToDoListAdapter.ToDoItemButtonListener
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val db = Firebase.firestore.collection("items-test")
-
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
         val adapter = ToDoListAdapter(this)
         recyclerView.adapter = adapter
@@ -34,16 +32,6 @@ class MainActivity : AppCompatActivity(), ToDoListAdapter.ToDoItemButtonListener
         // recyclerview, and alarm handler to update whether notification times should be modified
         toDoListViewModel.allToDoItems.observe(this) { items ->
             adapter.submitList(items)
-            for (item in items) {
-                item.id?.let {
-                    // Test write
-                    db.document(it.toString()).set(item.toMap()).addOnSuccessListener {
-                        Log.d("MainActivity", "Success item: $item")
-                    }.addOnFailureListener {
-                        Log.d("MainActivity", "Failure item: $item")
-                    }
-                }
-            }
         }
 
         // Launch activity to create new item
