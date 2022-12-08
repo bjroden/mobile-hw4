@@ -15,11 +15,6 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
 class MainActivity : AppCompatActivity(), ToDoListAdapter.ToDoItemButtonListener {
-    // Handles notifications for item due dates
-    private lateinit var alarmHandler: AlarmHandler
-    // Used so that item alarms don't get resent app initial load
-    private var observedOnce: Boolean = false
-
     private val toDoListViewModel: ToDoListViewModel by viewModels {
         ToDoListViewModel.ToDoListViewModelFactory((application as ToDoListApplication).repository)
     }
@@ -27,9 +22,6 @@ class MainActivity : AppCompatActivity(), ToDoListAdapter.ToDoItemButtonListener
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        alarmHandler = AlarmHandler()
-        alarmHandler.initNotificationChannel(this)
 
         val db = Firebase.firestore.collection("items-test")
         db.get().addOnSuccessListener {
@@ -44,10 +36,7 @@ class MainActivity : AppCompatActivity(), ToDoListAdapter.ToDoItemButtonListener
         // Actions to perform when database receives updates. Will submit the new list to the
         // recyclerview, and alarm handler to update whether notification times should be modified
         toDoListViewModel.allToDoItems.observe(this) { items ->
-            val oldList = adapter.currentList
             adapter.submitList(items)
-            if (!observedOnce) observedOnce = true
-            else alarmHandler.updateList(this, oldList, items)
         }
 
         // Launch activity to create new item
