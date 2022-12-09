@@ -5,7 +5,10 @@ import kotlinx.coroutines.flow.Flow
 
 class ToDoItemRepository(private val todoItemDao: ToDoItemDao) {
 
-    val allToDoItems: Flow<List<ToDoItem>> = todoItemDao.getToDoItems()
+    fun todoItemFlow(uid: String): Flow<List<ToDoItem>> = todoItemDao.getToDoItems(uid)
+
+    @WorkerThread
+    suspend fun getToDoItemsOnce(uid: String) = todoItemDao.getToDoItemsOnce(uid)
 
     @WorkerThread
     suspend fun insert(toDoItem: ToDoItem): Long = todoItemDao.insert(toDoItem)

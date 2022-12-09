@@ -5,8 +5,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ToDoItemDao {
-    @Query("SELECT * FROM todoitems_table order by id ASC")
-    fun getToDoItems(): Flow<List<ToDoItem>>
+    @Query("SELECT * FROM todoitems_table where uid = :uid order by id ASC")
+    fun getToDoItems(uid: String): Flow<List<ToDoItem>>
+
+    @Query("SELECT * FROM todoitems_table where uid = :uid order by id ASC")
+    suspend fun getToDoItemsOnce(uid: String): List<ToDoItem>
 
     @Update
     suspend fun updateItem(todoItem: ToDoItem)
