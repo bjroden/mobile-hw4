@@ -17,6 +17,7 @@ data class ToDoItem (
     @ColumnInfo(name = "completed") val completed: Boolean
 ) : Parcelable
 {
+    // Convert into format used to store inside firebase
     fun toFirebaseMap(): Map<String, Any> {
         val map = HashMap<String, Any>()
         map["title"] = this.title
@@ -27,15 +28,13 @@ data class ToDoItem (
     }
 
     companion object {
+        // Convert firebase fields to a new item
         fun fromFirebaseMap(map: Map<String, Any>, id: Long, uid: String): ToDoItem? {
-            val mTitle = map["title"] as String?
-            val mContent = map["content"] as String?
-            val mDueDate = map["dueDate"] as Long?
-            val mCompleted = map["completed"] as Boolean?
-            return if (mTitle != null && mContent != null && mDueDate != null && mCompleted != null) {
-                ToDoItem(id, uid, mTitle, mContent, mDueDate, mCompleted)
-            } else null
-
+            val mTitle = map["title"] as String? ?: return null
+            val mContent = map["content"] as String? ?: return null
+            val mDueDate = map["dueDate"] as Long? ?: return null
+            val mCompleted = map["completed"] as Boolean? ?: return null
+            return ToDoItem(id, uid, mTitle, mContent, mDueDate, mCompleted)
         }
     }
 }
