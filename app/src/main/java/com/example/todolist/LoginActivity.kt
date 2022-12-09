@@ -27,7 +27,7 @@ class LoginActivity : AppCompatActivity() {
     private fun createPasswordSignUp() {
         val email = findViewById<EditText>(R.id.emailEditText).text.toString()
         val password = findViewById<EditText>(R.id.passwordEditText).text.toString()
-        auth.signInWithEmailAndPassword(email, password)
+        auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
                     Log.d("MainActivity", "sign up successful: ${auth.currentUser?.uid}")
