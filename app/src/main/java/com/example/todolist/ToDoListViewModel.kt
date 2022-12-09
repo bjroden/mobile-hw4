@@ -46,8 +46,11 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
             }
             val local = repository.getToDoItemsOnce(user)
             for (l in local) {
-                // TODO: more robust checking for id conflicts
-                if (l !in online) { userItems().document(l.id.toString()).set(l.toFirebaseMap()) }
+                if (l !in online) {
+                    repository.deleteItem(l)
+                    val newId = repository.insert(l.copy(id = null))
+                    userItems().document(newId.toString()).set(l.toFirebaseMap())
+                }
             }
         }
     }
