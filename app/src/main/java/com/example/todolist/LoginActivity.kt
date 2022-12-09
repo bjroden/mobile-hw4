@@ -1,9 +1,11 @@
 package com.example.todolist
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
@@ -29,6 +31,7 @@ class LoginActivity : AppCompatActivity() {
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
                     Log.d("MainActivity", "sign up successful: ${auth.currentUser?.uid}")
+                    launchMainActivity()
                 }
                 else {
                     Log.d("MainActivity", task.exception.toString())
@@ -43,10 +46,18 @@ class LoginActivity : AppCompatActivity() {
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
                     Log.d("MainActivity", "sign in successful: ${auth.currentUser?.uid}")
+                    launchMainActivity()
                 }
                 else {
                     Log.d("MainActivity", task.exception.toString())
                 }
             }
+    }
+
+    private val mainActivityLauncher = registerForActivityResult(StartActivityForResult()) { }
+
+    private fun launchMainActivity() {
+        val intent = Intent(this, MainActivity::class.java)
+        mainActivityLauncher.launch(intent)
     }
 }
