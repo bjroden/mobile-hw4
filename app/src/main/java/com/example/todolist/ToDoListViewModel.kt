@@ -72,7 +72,7 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
                 if (o !in local) {
                     // Reinsert into firebase to avoid conflicting ids between room and firebase
                     val newId = repository.insert(o.copy(id = null))
-                    userItems().document(newId.toString()).delete()
+                    userItems().document(o.id.toString()).delete()
                     userItems().document(newId.toString()).set(o.toFirebaseMap())
                 }
             }
