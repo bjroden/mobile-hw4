@@ -103,7 +103,7 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
         todoItem.id?.let {
             repository.updateItem(todoItem)
             val newItem = repository.getItemById(it)
-            userItems().document(it.toString()).set(newItem)
+            userItems().document(it.toString()).set(newItem.toFirebaseMap())
         }
     }
 
