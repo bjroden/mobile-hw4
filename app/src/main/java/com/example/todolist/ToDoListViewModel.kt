@@ -1,6 +1,5 @@
 package com.example.todolist
 
-import android.util.Log
 import androidx.lifecycle.*
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
@@ -15,10 +14,10 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
     private val firebaseDb = Firebase.firestore.collection("users")
 
     init {
-        Log.d("MainActivity", "$uid")
         uid?.let { user ->
+            // Setup firebase listeners
             checkFirebaseUserExists(user)
-            userItems().addSnapshotListener { snapshot, e ->
+            userItems().addSnapshotListener { snapshot, _ ->
                 viewModelScope.launch {
                     val online = snapshot?.documents?.mapNotNull {
                         val data = it.data
@@ -51,7 +50,9 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
     private fun checkLocalNotInFirebase(user: String, onlineItems: List<ToDoItem>, localItems: List<ToDoItem>)  {
         for (l in localItems) {
             onlineItems.find { it.id == l.id && it.uid == user }?.let { o ->
-                if (o != l) writeNewerTimestamp(o, l)
+                // If item exists in firebase but is different, update
+                if (o != l) { writeNewerTimestamp(o, l) }
+                // If item does not exist in firebase, write it by reinserting room
             } ?: run { reinsertRoom(l) }
         }
     }
@@ -60,11 +61,14 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
     private fun checkFirebaseNotInLocal(user: String, onlineItems: List<ToDoItem>, localItems: List<ToDoItem>) {
         for (o in onlineItems) {
             localItems.find { it.id == o.id && it.uid == user }?.let { l ->
-                if (o != l) writeNewerTimestamp(o, l)
+                // If item exists in room but is different, update
+                if (o != l) { writeNewerTimestamp(o, l) }
+                // If item does not exist in room, write it by reinserting firebase
             } ?: run { reinsertFirebase(o) }
         }
     }
 
+    // Between online item (o) and local item (l), take the newer one and modify the corresponding db
     private fun writeNewerTimestamp(o: ToDoItem, l: ToDoItem) {
         if (l.lastModified > o.lastModified) { userItems().document(l.id.toString()).set(l.toFirebaseMap()) }
         else { viewModelScope.launch { repository.update(o) } }
