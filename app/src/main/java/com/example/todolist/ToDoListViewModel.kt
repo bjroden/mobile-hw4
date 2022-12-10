@@ -59,13 +59,15 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
 
     // Save firebase items to local repository if they do not exist
     private fun checkFirebaseNotInLocal(user: String, onlineItems: List<ToDoItem>, localItems: List<ToDoItem>) {
+        val itemsToAdd = mutableListOf<ToDoItem>()
         for (o in onlineItems) {
             localItems.find { it.id == o.id && it.uid == user }?.let { l ->
                 // If item exists in room but is different, update
                 if (o != l) { writeNewerTimestamp(o, l) }
                 // If item does not exist in room, write it by reinserting firebase
-            } ?: run { reinsertFirebase(o) }
+            } ?: run { itemsToAdd.add(o) }
         }
+        reinsertFirebase(itemsToAdd)
     }
 
     // Between online item (o) and local item (l), take the newer one and modify the corresponding db
@@ -83,12 +85,17 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
     }
 
     // Reinsert into firebase to avoid conflicting ids between room and firebase
-    private fun reinsertFirebase(onlineItem: ToDoItem) = viewModelScope.launch {
-        val newId = repository.insertNewTimestamp(onlineItem.copy(id = null))
-        val newItem = repository.getItemById(newId)
+    // Done in batch to avoid bug where items will be continuously inserted
+    private fun reinsertFirebase(onlineItems: List<ToDoItem>) {
         Firebase.firestore.runTransaction { transaction ->
-            transaction.delete(userItems().document(onlineItem.id.toString()))
-            transaction.set(userItems().document(newId.toString()), newItem.toFirebaseMap())
+            viewModelScope.launch {
+                for (onlineItem in onlineItems) {
+                    val newId = repository.insertNewTimestamp(onlineItem.copy(id = null))
+                    val newItem = repository.getItemById(newId)
+                    transaction.delete(userItems().document(onlineItem.id.toString()))
+                    transaction.set(userItems().document(newId.toString()), newItem.toFirebaseMap())
+                }
+            }
         }
     }
 
