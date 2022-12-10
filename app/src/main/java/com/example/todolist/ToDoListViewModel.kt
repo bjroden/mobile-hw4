@@ -48,13 +48,15 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
 
     // Upload local items to firebase if they do not exist
     private fun checkLocalNotInFirebase(user: String, onlineItems: List<ToDoItem>, localItems: List<ToDoItem>)  {
+        val itemsToAdd = mutableListOf<ToDoItem>()
         for (l in localItems) {
             onlineItems.find { it.id == l.id && it.uid == user }?.let { o ->
                 // If item exists in firebase but is different, update
                 if (o != l) { writeNewerTimestamp(o, l) }
                 // If item does not exist in firebase, write it by reinserting room
-            } ?: run { reinsertRoom(l) }
+            } ?: run { itemsToAdd.add(l) }
         }
+        reinsertRoom(itemsToAdd)
     }
 
     // Save firebase items to local repository if they do not exist
@@ -77,11 +79,18 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
     }
 
     // Reinsert into room to avoid conflicting ids between room and firebase
-    private fun reinsertRoom(localItem: ToDoItem) = viewModelScope.launch {
-        repository.deleteItem(localItem)
-        val newId = repository.insertNewTimestamp(localItem.copy(id = null))
-        val newItem = repository.getItemById(newId)
-        userItems().document(newId.toString()).set(newItem.toFirebaseMap())
+    // Done in batch to avoid bug where items will be continuously inserted
+    private fun reinsertRoom(localItems: List<ToDoItem>) {
+        Firebase.firestore.runTransaction { transaction ->
+            viewModelScope.launch {
+                for (localItem in localItems) {
+                    repository.deleteItem(localItem)
+                    val newId = repository.insertNewTimestamp(localItem.copy(id = null))
+                    val newItem = repository.getItemById(newId)
+                    transaction.set(userItems().document(newId.toString()), newItem.toFirebaseMap())
+                }
+            }
+        }
     }
 
     // Reinsert into firebase to avoid conflicting ids between room and firebase
