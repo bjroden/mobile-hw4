@@ -85,7 +85,14 @@ class NewToDoItemActivity : AppCompatActivity(), TimePickerDialog.OnTimeSetListe
             val content = editContentView.text.toString()
             val epochTime: Long = date.timeInMillis
             val completed = isCompletedView.isChecked
-            val item = ToDoItem(existingItem?.id, "", title, content, epochTime, completed, 0)
+            val item = ToDoItem(existingItem?.id,
+                existingItem?.uid ?: "",
+                title,
+                content,
+                epochTime,
+                completed,
+                existingItem?.lastModified ?: 0
+            )
             replyIntent.putExtra(EXTRA_ITEM, item)
             setResult(Activity.RESULT_OK, replyIntent)
             finish()
