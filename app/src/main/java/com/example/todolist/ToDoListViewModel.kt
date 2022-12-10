@@ -81,13 +81,13 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
     // Reinsert into room to avoid conflicting ids between room and firebase
     // Done in batch to avoid bug where items will be continuously inserted
     private fun reinsertRoom(localItems: List<ToDoItem>) {
-        Firebase.firestore.runTransaction { transaction ->
+        Firebase.firestore.runBatch { batch ->
             viewModelScope.launch {
                 for (localItem in localItems) {
                     repository.deleteItem(localItem)
                     val newId = repository.insertNewTimestamp(localItem.copy(id = null))
                     val newItem = repository.getItemById(newId)
-                    transaction.set(userItems().document(newId.toString()), newItem.toFirebaseMap())
+                    batch.set(userItems().document(newId.toString()), newItem.toFirebaseMap())
                 }
             }
         }
@@ -96,13 +96,13 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
     // Reinsert into firebase to avoid conflicting ids between room and firebase
     // Done in batch to avoid bug where items will be continuously inserted
     private fun reinsertFirebase(onlineItems: List<ToDoItem>) {
-        Firebase.firestore.runTransaction { transaction ->
+        Firebase.firestore.runBatch { batch ->
             viewModelScope.launch {
                 for (onlineItem in onlineItems) {
                     val newId = repository.insertNewTimestamp(onlineItem.copy(id = null))
                     val newItem = repository.getItemById(newId)
-                    transaction.delete(userItems().document(onlineItem.id.toString()))
-                    transaction.set(userItems().document(newId.toString()), newItem.toFirebaseMap())
+                    batch.delete(userItems().document(onlineItem.id.toString()))
+                    batch.set(userItems().document(newId.toString()), newItem.toFirebaseMap())
                 }
             }
         }
