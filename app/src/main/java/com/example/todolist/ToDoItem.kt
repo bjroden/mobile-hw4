@@ -14,7 +14,8 @@ data class ToDoItem (
     @ColumnInfo(name = "title") val title: String,
     @ColumnInfo(name = "content" ) val content: String,
     @ColumnInfo(name = "due_date") val dueDate: Long,
-    @ColumnInfo(name = "completed") val completed: Boolean
+    @ColumnInfo(name = "completed") val completed: Boolean,
+    @ColumnInfo(name = "last_modified") val lastModified: Long
 ) : Parcelable
 {
     // Convert into format used to store inside firebase
@@ -24,6 +25,7 @@ data class ToDoItem (
         map["content"] = this.content
         map["dueDate"] = this.dueDate
         map["completed"] = this.completed
+        map["lastModified"] = this.lastModified
         return map
     }
 
@@ -34,7 +36,8 @@ data class ToDoItem (
             val mContent = map["content"] as String? ?: return null
             val mDueDate = map["dueDate"] as Long? ?: return null
             val mCompleted = map["completed"] as Boolean? ?: return null
-            return ToDoItem(id, uid, mTitle, mContent, mDueDate, mCompleted)
+            val mLastModified = map["lastModified"] as Long? ?: return null
+            return ToDoItem(id, uid, mTitle, mContent, mDueDate, mCompleted, mLastModified)
         }
     }
 }

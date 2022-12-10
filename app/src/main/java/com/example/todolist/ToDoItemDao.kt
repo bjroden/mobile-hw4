@@ -11,6 +11,9 @@ interface ToDoItemDao {
     @Query("SELECT * FROM todoitems_table where uid = :uid order by id ASC")
     suspend fun getToDoItemsOnce(uid: String): List<ToDoItem>
 
+    @Query("SELECT * FROM todoitems_table where id = :id")
+    suspend fun getItemById(id: Long): ToDoItem
+
     @Update
     suspend fun updateItem(todoItem: ToDoItem)
 

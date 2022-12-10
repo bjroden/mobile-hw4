@@ -47,12 +47,7 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
             }
             val local = repository.getToDoItemsOnce(user)
             for (l in local) {
-                if (l !in online) {
-                    // Reinsert into room to avoid conflicting ids between room and firebase
-                    repository.deleteItem(l)
-                    val newId = repository.insert(l.copy(id = null))
-                    userItems().document(newId.toString()).set(l.toFirebaseMap())
-                }
+                if (!online.any { it.id == l.id && it.uid == user }) { reinsertRoom(l) }
             }
         }
     }
@@ -69,14 +64,25 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
             }
             val local = repository.getToDoItemsOnce(user)
             for (o in online) {
-                if (o !in local) {
-                    // Reinsert into firebase to avoid conflicting ids between room and firebase
-                    val newId = repository.insert(o.copy(id = null))
-                    userItems().document(o.id.toString()).delete()
-                    userItems().document(newId.toString()).set(o.toFirebaseMap())
-                }
+                if (!local.any { it.id == o.id && it.uid == user }) { reinsertFirebase(o) }
             }
         }
+    }
+
+    // Reinsert into room to avoid conflicting ids between room and firebase
+    private fun reinsertRoom(localItem: ToDoItem) = viewModelScope.launch {
+        repository.deleteItem(localItem)
+        val newId = repository.insert(localItem.copy(id = null))
+        val newItem = repository.getItemById(newId)
+        userItems().document(newId.toString()).set(newItem.toFirebaseMap())
+    }
+
+    // Reinsert into firebase to avoid conflicting ids between room and firebase
+    private fun reinsertFirebase(onlineItem: ToDoItem) = viewModelScope.launch {
+        val newId = repository.insert(onlineItem.copy(id = null))
+        val newItem = repository.getItemById(newId)
+        userItems().document(onlineItem.id.toString()).delete()
+        userItems().document(newId.toString()).set(newItem.toFirebaseMap())
     }
 
     // Livedata used by activities to see item status
@@ -86,15 +92,19 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
     fun insert(todoItem: ToDoItem) = viewModelScope.launch {
         uid?.let {
             val newItem = todoItem.copy(uid = it)
-            val id = repository.insert(newItem)
-            userItems().document(id.toString()).set(newItem.toFirebaseMap())
+            val newId = repository.insert(newItem)
+            val updatedTimestamp = repository.getItemById(newId)
+            userItems().document(newId.toString()).set(updatedTimestamp.toFirebaseMap())
         }
     }
 
     // Update item in both room and firebase
     fun updateItem(todoItem: ToDoItem) = viewModelScope.launch {
-        repository.updateItem(todoItem)
-        todoItem.id?.let { userItems().document(it.toString()).set(todoItem.toFirebaseMap()) }
+        todoItem.id?.let {
+            repository.updateItem(todoItem)
+            val newItem = repository.getItemById(it)
+            userItems().document(it.toString()).set(newItem)
+        }
     }
 
     // Delete item from both room and firebase

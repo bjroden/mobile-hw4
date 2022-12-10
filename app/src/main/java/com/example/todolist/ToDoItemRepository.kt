@@ -8,13 +8,16 @@ class ToDoItemRepository(private val todoItemDao: ToDoItemDao) {
     fun todoItemFlow(uid: String): Flow<List<ToDoItem>> = todoItemDao.getToDoItems(uid)
 
     @WorkerThread
+    suspend fun getItemById(id: Long) = todoItemDao.getItemById(id)
+
+    @WorkerThread
     suspend fun getToDoItemsOnce(uid: String) = todoItemDao.getToDoItemsOnce(uid)
 
     @WorkerThread
-    suspend fun insert(toDoItem: ToDoItem): Long = todoItemDao.insert(toDoItem)
+    suspend fun insert(toDoItem: ToDoItem): Long = todoItemDao.insert(toDoItem.copy(lastModified = System.currentTimeMillis()))
 
     @WorkerThread
-    suspend fun updateItem(toDoItem: ToDoItem) = todoItemDao.updateItem(toDoItem)
+    suspend fun updateItem(toDoItem: ToDoItem) = todoItemDao.updateItem(toDoItem.copy(lastModified = System.currentTimeMillis()))
 
     @WorkerThread
     suspend fun deleteItem(item: ToDoItem) = todoItemDao.deleteItem(item)
