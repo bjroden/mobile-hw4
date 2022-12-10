@@ -18,8 +18,20 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
         Log.d("MainActivity", "$uid")
         uid?.let { user ->
             checkFirebaseUserExists(user)
-            checkLocalNotInFirebase(user)
-            checkFirebaseNotInLocal(user)
+            userItems().addSnapshotListener { snapshot, e ->
+                viewModelScope.launch {
+                    val online = snapshot?.documents?.mapNotNull {
+                        val data = it.data
+                        val id = it.id.toLongOrNull()
+                        if (data != null && id != null)
+                            ToDoItem.fromFirebaseMap(data, id, user)
+                        else null
+                    } ?: return@launch
+                    val local = repository.getToDoItemsOnce(user)
+                    checkLocalNotInFirebase(user, online, local)
+                    checkFirebaseNotInLocal(user, online, local)
+                }
+            }
         }
     }
 
@@ -36,53 +48,44 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
         }
 
     // Upload local items to firebase if they do not exist
-    private fun checkLocalNotInFirebase(user: String) = userItems().get().addOnSuccessListener { query ->
-        viewModelScope.launch {
-            val online = query.documents.mapNotNull {
-                val data = it.data
-                val id = it.id.toLongOrNull()
-                if (data != null && id != null)
-                    ToDoItem.fromFirebaseMap(data, id, user)
-                else null
-            }
-            val local = repository.getToDoItemsOnce(user)
-            for (l in local) {
-                if (!online.any { it.id == l.id && it.uid == user }) { reinsertRoom(l) }
-            }
+    private fun checkLocalNotInFirebase(user: String, onlineItems: List<ToDoItem>, localItems: List<ToDoItem>)  {
+        for (l in localItems) {
+            onlineItems.find { it.id == l.id && it.uid == user }?.let { o ->
+                if (o != l) writeNewerTimestamp(o, l)
+            } ?: run { reinsertRoom(l) }
         }
     }
 
     // Save firebase items to local repository if they do not exist
-    private fun checkFirebaseNotInLocal(user: String) = userItems().get().addOnSuccessListener { query ->
-        viewModelScope.launch {
-            val online = query.documents.mapNotNull {
-                val data = it.data
-                val id = it.id.toLongOrNull()
-                if (data != null && id != null)
-                    ToDoItem.fromFirebaseMap(data, id, user)
-                else null
-            }
-            val local = repository.getToDoItemsOnce(user)
-            for (o in online) {
-                if (!local.any { it.id == o.id && it.uid == user }) { reinsertFirebase(o) }
-            }
+    private fun checkFirebaseNotInLocal(user: String, onlineItems: List<ToDoItem>, localItems: List<ToDoItem>) {
+        for (o in onlineItems) {
+            localItems.find { it.id == o.id && it.uid == user }?.let { l ->
+                if (o != l) writeNewerTimestamp(o, l)
+            } ?: run { reinsertFirebase(o) }
         }
+    }
+
+    private fun writeNewerTimestamp(o: ToDoItem, l: ToDoItem) {
+        if (l.lastModified > o.lastModified) { userItems().document(l.id.toString()).set(l.toFirebaseMap()) }
+        else { viewModelScope.launch { repository.update(o) } }
     }
 
     // Reinsert into room to avoid conflicting ids between room and firebase
     private fun reinsertRoom(localItem: ToDoItem) = viewModelScope.launch {
         repository.deleteItem(localItem)
-        val newId = repository.insert(localItem.copy(id = null))
+        val newId = repository.insertNewTimestamp(localItem.copy(id = null))
         val newItem = repository.getItemById(newId)
         userItems().document(newId.toString()).set(newItem.toFirebaseMap())
     }
 
     // Reinsert into firebase to avoid conflicting ids between room and firebase
     private fun reinsertFirebase(onlineItem: ToDoItem) = viewModelScope.launch {
-        val newId = repository.insert(onlineItem.copy(id = null))
+        val newId = repository.insertNewTimestamp(onlineItem.copy(id = null))
         val newItem = repository.getItemById(newId)
-        userItems().document(onlineItem.id.toString()).delete()
-        userItems().document(newId.toString()).set(newItem.toFirebaseMap())
+        Firebase.firestore.runTransaction { transaction ->
+            transaction.delete(userItems().document(onlineItem.id.toString()))
+            transaction.set(userItems().document(newId.toString()), newItem.toFirebaseMap())
+        }
     }
 
     // Livedata used by activities to see item status
@@ -92,7 +95,7 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
     fun insert(todoItem: ToDoItem) = viewModelScope.launch {
         uid?.let {
             val newItem = todoItem.copy(uid = it)
-            val newId = repository.insert(newItem)
+            val newId = repository.insertNewTimestamp(newItem)
             val updatedTimestamp = repository.getItemById(newId)
             userItems().document(newId.toString()).set(updatedTimestamp.toFirebaseMap())
         }
@@ -101,7 +104,7 @@ class ToDoListViewModel(private val repository: ToDoItemRepository): ViewModel()
     // Update item in both room and firebase
     fun updateItem(todoItem: ToDoItem) = viewModelScope.launch {
         todoItem.id?.let {
-            repository.updateItem(todoItem)
+            repository.updateNewTimestamp(todoItem)
             val newItem = repository.getItemById(it)
             userItems().document(it.toString()).set(newItem.toFirebaseMap())
         }

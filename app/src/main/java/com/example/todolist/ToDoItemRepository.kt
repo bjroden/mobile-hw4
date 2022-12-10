@@ -14,10 +14,16 @@ class ToDoItemRepository(private val todoItemDao: ToDoItemDao) {
     suspend fun getToDoItemsOnce(uid: String) = todoItemDao.getToDoItemsOnce(uid)
 
     @WorkerThread
-    suspend fun insert(toDoItem: ToDoItem): Long = todoItemDao.insert(toDoItem.copy(lastModified = System.currentTimeMillis()))
+    suspend fun insert(toDoItem: ToDoItem): Long = todoItemDao.insert(toDoItem)
 
     @WorkerThread
-    suspend fun updateItem(toDoItem: ToDoItem) = todoItemDao.updateItem(toDoItem.copy(lastModified = System.currentTimeMillis()))
+    suspend fun insertNewTimestamp(toDoItem: ToDoItem): Long = todoItemDao.insert(toDoItem.copy(lastModified = System.currentTimeMillis()))
+
+    @WorkerThread
+    suspend fun update(toDoItem: ToDoItem) = todoItemDao.updateItem(toDoItem)
+
+    @WorkerThread
+    suspend fun updateNewTimestamp(toDoItem: ToDoItem) = todoItemDao.updateItem(toDoItem.copy(lastModified = System.currentTimeMillis()))
 
     @WorkerThread
     suspend fun deleteItem(item: ToDoItem) = todoItemDao.deleteItem(item)
